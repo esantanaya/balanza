@@ -3,8 +3,8 @@ import re
 
 import xlrd
 from lxml import etree as et
-
-from src.cElectronica import Balanza, Cuenta
+from lxml import objectify as obj
+from cElectronica import Balanza, Cuenta
 
 MESES_NOMBRE = {
     'Abril': 4,
@@ -21,30 +21,45 @@ MESES_NOMBRE = {
     'Septiembre': 9,
 }
 # TODO: Deshacer esto, ya está definido en la clase, mi sindrome de down, sorry
-NS_BCE = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion'
-NS_XSI = 'http://www.w3.org/2001/XMLSchema-instance'
-NS_SCHEMALOCATION = 'http://www.w3.org/2001/XMLSchema-instance'
+NAMESPACES = {
+    'BCE':
+    'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion',
+    'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+}
+NS_SCHEMALOCATION = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion/BalanzaComprobacion_1_3.xsd'
+
 
 def crea_xml(balanza):
-    nombre_xml = (f'{balanza.rfc}-{balanza.mes}-{balanza.anio}'
-        +f'-{balanza.tipo_envio}.xml')
+    nombre_xml = (
+        f'{balanza.rfc}{balanza.anio}{balanza.mes}B{balanza.tipo_envio}.xml'
+    )
+    attr_schema = et.QName(NAMESPACES['xsi'], 'schemaLocation')
     with et.xmlfile(nombre_xml, encoding='UTF-8') as xml:
         with xml.element(
-            # TODO: No se refleja bien el namespace
-            f'{{NS_BCE}}Balanza',
-            nsmap={'BCE': NS_BCE, 'xsi': NS_XSI},
+            '{' + NAMESPACES['BCE'] + '}' + 'Balanza',
+            nsmap=NAMESPACES,
             attrib={
-                'xsi': NS_SCHEMALOCATION,
+                attr_schema: NS_SCHEMALOCATION,
                 'Version': balanza.version,
                 'RFC': balanza.rfc,
                 'TipoEnvio': balanza.tipo_envio,
                 'Mes': balanza.mes,
                 'Anio': balanza.anio
             }
-        ):
+        ) as elemento_padre:
             for cuenta in balanza.cuentas:
-                # TODO: Terminar las cuentas
-                xml.write(et.Element(f'{{NS_BCE}}Ctas'))
+                xml.write(et.Element(
+                    '{' + NAMESPACES['BCE'] + '}' + 'Ctas',
+                    nsmap=NAMESPACES,
+                    attrib={
+                        'NumCta': cuenta.num_cta,
+                        'SaldoIni': cuenta.saldo_ini,
+                        'Debe': cuenta.debe,
+                        'Haber': cuenta.haber,
+                        'SaldoFin': cuenta.saldo_fin,
+                    },
+                )
+                )
 
 
 def genera_contabilidad(nombre_archivo):
@@ -68,14 +83,19 @@ def genera_contabilidad(nombre_archivo):
                 )
                 cuentas.append(cuenta)
         balanza.cuentas = cuentas
-    return balanza
+        crea_xml(balanza)
 
 
 def obtener_archivos():
     archivos = os.listdir()
-    regex = [re.match(r'^\w[\w\s\(\)]+\.xlsx?', x) for x in archivos]
-    archivos_validos = [x.string for x in archivos_validos if x != None]
+    regex = [
+        re.match(
+            r'^[A-ZÑ&]{3,4}\d{6}(?:[A-Z\d]{3})?\.xlsx?', x
+        ) for x in archivos
+    ]
+    archivos_validos = [x.string for x in regex if x != None]
     return archivos_validos
+
 
 def main():
     archivos = obtener_archivos()

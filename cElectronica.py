@@ -89,20 +89,28 @@ class Cuenta:
         saldo_fin=None,
     ):
         self._num_cta = num_cta
-        self._saldo_ini = saldo_ini
-        self._debe = debe
-        self._haber = haber
-        self._saldo_fin = saldo_fin
+        self._saldo_ini = self._valida_decimales(saldo_ini)
+        self._debe = self._valida_decimales(debe)
+        self._haber = self._valida_decimales(haber)
+        self._saldo_fin = self._valida_decimales(saldo_fin)
 
-    def _valida_decimales(numero):
-        val_dec = str(numero).split('.')
-        if len(val_dec[1]) > 2:
-            raise BalanzaError(
-                'Sólo puede haber dos o menos decimales'
-                + f'{self._balanza} {self._num_cta}'
-            )
-        else:
-            return numero
+    def _valida_decimales(self, numero):
+        if type(numero) == float or type(numero) == int:
+            return str(numero)
+        numero = str(numero)
+        if len(numero) == 0 or numero == 'None':
+            return '0'
+        if '.' in numero:
+            val_dec = numero.split('.')
+            if len(val_dec[1]) > 2:
+                raise BalanzaError(
+                    'Sólo puede haber dos o menos decimales'
+                    + f'{self._num_cta}'
+                )
+        elif not numero.isdigit():
+            raise BalanzaError(f'Tenías que ingresar un número ({numero})')
+
+        return numero
 
     @property
     def num_cta(self):
