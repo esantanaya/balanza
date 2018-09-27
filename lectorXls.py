@@ -4,7 +4,8 @@ import re
 import xlrd
 from lxml import etree as et
 from lxml import objectify as obj
-from cElectronica import Balanza, Cuenta
+
+from cElectronica import Balanza, Cuenta, BalanzaError
 
 MESES_NOMBRE = {
     'Abril': 4,
@@ -35,6 +36,7 @@ def crea_xml(balanza):
     )
     attr_schema = et.QName(NAMESPACES['xsi'], 'schemaLocation')
     with et.xmlfile(nombre_xml, encoding='UTF-8') as xml:
+        xml.write_declaration(standalone=True)
         with xml.element(
             '{' + NAMESPACES['BCE'] + '}' + 'Balanza',
             nsmap=NAMESPACES,
@@ -63,17 +65,28 @@ def crea_xml(balanza):
 
 
 def genera_contabilidad(nombre_archivo):
+    ex = r'^\d{3}[A-Z\-]*\d*$'
     libro = xlrd.open_workbook(nombre_archivo)
     rfc_actual = nombre_archivo.split('.')[0]
     pestanas = libro.sheets()
     for pestana in pestanas:
         cuentas = []
-        mes_nombre, anio = pestana.name.split(' ')
+        try:
+            mes_nombre, anio = pestana.name.split(' ')
+        except ValueError as ve:
+            raise BalanzaError(
+                'Recuerda nombrar correctamente las pestañas '
+                + f'{nombre_archivo} {pestana.name}'
+            )
         mes_numero = MESES_NOMBRE[mes_nombre]
         mes = f'0{str(mes_numero)}'[-2:]
         balanza = Balanza(rfc_actual, 'N', mes, anio)
         for fila in pestana.get_rows():
-            if fila[1].value.isdigit():
+            if fila[1].ctype == 2:
+                valor_fila = str(fila[1].value)
+                valor_fila = valor_fila.split('.')[0]
+                fila[1].value = valor_fila
+            if re.match(ex, fila[1].value):
                 cuenta = Cuenta(
                     fila[1].value,
                     fila[3].value,
@@ -104,4 +117,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(e)
+    finally:
+        input('Terminamos, presiona Enter')

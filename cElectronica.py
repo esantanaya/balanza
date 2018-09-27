@@ -1,7 +1,25 @@
 from datetime import datetime as dt
 
-
+# TODO: Pasar la función de crea_xml como un metodo de Balanza
 class Balanza:
+
+    MESES_NOMBRE = {
+        'Enero': 1,
+        'Febrero': 2,
+        'Marzo': 3,
+        'Abril': 4,
+        'Mayo': 5,
+        'Junio': 6,
+        'Julio': 7,
+        'Agosto': 8,
+        'Septiembre': 9,
+        'Octubre': 10,
+        'Noviembre': 11,
+        'Diciembre': 12,
+        'Cierre': 13,
+    }
+
+
     def __init__(self, rfc=None, tipo_envio=None, mes=None, anio=None):
         self._name_space_bce = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion'
         self._name_space_xsi = 'http://www.w3.org/2001/XMLSchema-instance'
@@ -50,7 +68,7 @@ class Balanza:
 
     @mes.setter
     def mes(self, mes):
-        MESES = (('0'+f'{x}')[-2:] for x in range(1, 13))
+        MESES = (('0'+f'{x}')[-2:] for x in range(1, 14))
         if mes not in MESES:
             raise BalanzaError('Error! mes {mes} fuera del rango 1-13')
         else:
@@ -74,6 +92,10 @@ class Balanza:
     @cuentas.setter
     def cuentas(self, cuentas):
         self._cuentas = cuentas
+
+    def _convierte_xml(self):
+        nombre_xml = f'{self.rfc}{self.anio}{self.mes}B{self.tipo_envio}.xml'
+        attr_schema = et.QName(NA)
 
     def __str__(self):
         return f'Balanza {self._anio}-{self._mes}'
