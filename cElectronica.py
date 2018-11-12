@@ -117,7 +117,7 @@ class Cuenta:
         self._saldo_fin = self._valida_decimales(saldo_fin)
 
     def _valida_decimales(self, numero):
-        if type(numero) == float or type(numero) == int:
+        if isinstance(numero, float) or isinstance(numero, int):
             return str(numero)
         numero = str(numero)
         if len(numero) == 0 or numero == 'None':
