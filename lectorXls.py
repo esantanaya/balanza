@@ -60,8 +60,7 @@ def crea_xml(balanza):
                         'Haber': cuenta.haber,
                         'SaldoFin': cuenta.saldo_fin,
                     },
-                )
-                )
+                ))
 
 
 def genera_contabilidad(nombre_archivo):
@@ -79,7 +78,7 @@ def genera_contabilidad(nombre_archivo):
                 + f'{nombre_archivo} {pestana.name}'
             )
         mes_numero = MESES_NOMBRE[mes_nombre]
-        mes = f'0{str(mes_numero)}'[-2:]
+        mes = f'{mes_numero:02d}'
         balanza = Balanza(rfc_actual, 'N', mes, anio)
         for fila in pestana.get_rows():
             if fila[1].ctype == 2:

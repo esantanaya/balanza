@@ -180,6 +180,83 @@ class Cuenta:
         self._saldo_fin = self._valida_decimales(saldo_fin)
 
 
+class CatalogoCuenta:
+    def __init__(self, rfc, mes, anio, cod_agrupador,
+                 cuenta, descripcion, naturaleza, nivel):
+        self._rfc = rfc
+        self._mes = mes
+        self._anio = anio
+        self._cod_agrupador = cod_agrupador
+        self._cuenta = cuenta
+        self._descripcion = descripcion
+        self._naturaleza = naturaleza
+        self._nivel = nivel
+
+    @property
+    def rfc(self):
+        return self._rfc
+
+    @rfc.setter
+    def rfc(self, rfc):
+        self._rfc = rfc
+
+    @property
+    def mes(self):
+        return self._mes
+
+    @mes.setter
+    def mes(self, mes):
+        self._mes = mes
+
+    @property
+    def anio(self):
+        return self._anio
+
+    @anio.setter
+    def anio(self, anio):
+        self._anio = anio
+
+    @property
+    def cod_agrupador(self):
+        return self._cod_agrupador
+
+    @cod_agrupador.setter
+    def cod_agrupador(self, cod_agrupador):
+        self._cod_agrupador = cod_agrupador
+
+    @property
+    def cuenta(self):
+        return self._cuenta
+
+    @cuenta.setter
+    def cuenta(self, cuenta):
+        self._cuenta = cuenta
+
+    @property
+    def descripcion(self):
+        return self._descripcion
+
+    @descripcion.setter
+    def descripcion(self, descripcion):
+        self._descripcion = descripcion
+
+    @property
+    def naturaleza(self):
+        return self._naturaleza
+
+    @naturaleza.setter
+    def naturaleza(self, naturaleza):
+        self._naturaleza = naturaleza
+
+    @property
+    def nivel(self):
+        return self._nivel
+
+    @nivel.setter
+    def nivel(self, nivel):
+        self._nivel = nivel
+
+
 class BalanzaError(Exception):
     def __init__(self, error):
         super().__init__(self, error)
