@@ -1,6 +1,7 @@
 from datetime import datetime as dt
 
-# TODO: Pasar la función de crea_xml como un metodo de Balanza
+from lxml import etree as et
+
 class Balanza:
 
     MESES_NOMBRE = {
@@ -21,8 +22,12 @@ class Balanza:
 
 
     def __init__(self, rfc=None, tipo_envio=None, mes=None, anio=None):
-        self._name_space_bce = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion'
-        self._name_space_xsi = 'http://www.w3.org/2001/XMLSchema-instance'
+        self._namespace_bce = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion'
+        self._namespace_xsi = 'http://www.w3.org/2001/XMLSchema-instance'
+        self._namespaces = {
+            'BCE': self._namespace_bce,
+            'xsi': self._namespace_xsi,
+        }
         self._schemaLocation = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion/BalanzaComprobacion_1_3.xsd'
         self._version = '1.3'
         self._rfc = rfc
@@ -99,6 +104,38 @@ class Balanza:
 
     def __str__(self):
         return f'Balanza {self._anio}-{self._mes}'
+
+    def crea_xml(self):
+        nombre_xml = (
+            f'{self.rfc}{self.anio}{self.mes}B{self.tipo_envio}.xml'
+        )
+        attr_schema = et.QName(self._namespace_xsi, 'schemaLocation')
+        with et.xmlfile(nombre_xml, encoding='UTF-8') as xml:
+            xml.write_declaration(standalone=True)
+            with xml.element(
+                '{' + self._namespace_bce + '}' + 'Balanza',
+                nsmap=self._namespaces,
+                attrib={
+                    attr_schema: self._schemaLocation,
+                    'Version': self.version,
+                    'RFC': self.rfc,
+                    'TipoEnvio': self.tipo_envio,
+                    'Mes': self.mes,
+                    'Anio': self.anio
+                }
+            ) as elemento_padre:
+                for cuenta in self.cuentas:
+                    xml.write(et.Element(
+                        '{' + self._namespace_bce + '}' + 'Ctas',
+                        nsmap=self._namespaces,
+                        attrib={
+                            'NumCta': cuenta.num_cta,
+                            'SaldoIni': cuenta.saldo_ini,
+                            'Debe': cuenta.debe,
+                            'Haber': cuenta.haber,
+                            'SaldoFin': cuenta.saldo_fin,
+                        },
+                    ))
 
 
 class Cuenta:
@@ -260,3 +297,7 @@ class CatalogoCuenta:
 class BalanzaError(Exception):
     def __init__(self, error):
         super().__init__(self, error)
+
+
+class CatalogoError(Exception):
+    pass
