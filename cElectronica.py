@@ -110,32 +110,34 @@ class Balanza:
             f'{self.rfc}{self.anio}{self.mes}B{self.tipo_envio}.xml'
         )
         attr_schema = et.QName(self._namespace_xsi, 'schemaLocation')
-        with et.xmlfile(nombre_xml, encoding='UTF-8') as xml:
-            xml.write_declaration(standalone=True)
-            with xml.element(
-                '{' + self._namespace_bce + '}' + 'Balanza',
+        elemento = et.Element(
+            f'{{{self._namespace_bce}}}Balanza', 
+            nsmap=self._namespaces,
+            attrib={
+                attr_schema: self._schemaLocation,
+                'Version': self.version,
+                'RFC': self.rfc,
+                'TipoEnvio': self.tipo_envio,
+                'Mes': self.mes,
+                'Anio': self.anio,
+            }
+        )
+        for cuenta in self.cuentas:
+            et.SubElement(
+                elemento, 
+                f'{{{self._namespace_bce}}}Ctas',
                 nsmap=self._namespaces,
                 attrib={
-                    attr_schema: self._schemaLocation,
-                    'Version': self.version,
-                    'RFC': self.rfc,
-                    'TipoEnvio': self.tipo_envio,
-                    'Mes': self.mes,
-                    'Anio': self.anio
+                    'NumCta': cuenta.num_cta,
+                    'SaldoIni': cuenta.saldo_ini,
+                    'Debe': cuenta.debe,
+                    'Haber': cuenta.haber,
+                    'SaldoFin': cuenta.saldo_fin,
                 }
-            ) as elemento_padre:
-                for cuenta in self.cuentas:
-                    xml.write(et.Element(
-                        '{' + self._namespace_bce + '}' + 'Ctas',
-                        nsmap=self._namespaces,
-                        attrib={
-                            'NumCta': cuenta.num_cta,
-                            'SaldoIni': cuenta.saldo_ini,
-                            'Debe': cuenta.debe,
-                            'Haber': cuenta.haber,
-                            'SaldoFin': cuenta.saldo_fin,
-                        },
-                    ))
+            )
+
+        arbol = et.ElementTree(elemento)
+        arbol.write(nombre_xml, encoding='utf-8', pretty_print=True, standalone=True)
 
 
 class Cuenta:
