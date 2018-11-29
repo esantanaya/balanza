@@ -6,9 +6,9 @@ name = "pypi"
 [packages]
 xlrd = "*"
 lxml = "*"
-pyinstaller = "*"
 
 [dev-packages]
+pyinstaller = "*"
 
 [requires]
 python_version = "3.6"
