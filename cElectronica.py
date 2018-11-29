@@ -2,8 +2,8 @@ from datetime import datetime as dt
 
 from lxml import etree as et
 
-class Balanza:
 
+class Contabilidad:
     MESES_NOMBRE = {
         'Enero': 1,
         'Febrero': 2,
@@ -19,17 +19,20 @@ class Balanza:
         'Diciembre': 12,
         'Cierre': 13,
     }
-
-
-    def __init__(self, rfc=None, tipo_envio=None, mes=None, anio=None):
-        self._namespace_bce = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion'
+    def __init__(self):
         self._namespace_xsi = 'http://www.w3.org/2001/XMLSchema-instance'
+        self._version = '1.3'
+
+
+class Balanza(Contabilidad):
+    def __init__(self, rfc=None, tipo_envio=None, mes=None, anio=None):
+        super().__init__()
+        self._namespace_bce = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion'
         self._namespaces = {
             'BCE': self._namespace_bce,
             'xsi': self._namespace_xsi,
         }
         self._schemaLocation = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion/BalanzaComprobacion_1_3.xsd'
-        self._version = '1.3'
         self._rfc = rfc
         self._tipo_envio = tipo_envio
         self._mes = mes
@@ -135,7 +138,6 @@ class Balanza:
                     'SaldoFin': cuenta.saldo_fin,
                 }
             )
-
         arbol = et.ElementTree(elemento)
         arbol.write(nombre_xml, encoding='utf-8', pretty_print=True, standalone=True)
 
@@ -219,18 +221,20 @@ class Cuenta:
         self._saldo_fin = self._valida_decimales(saldo_fin)
 
 
-class CatalogoCuenta:
-    def __init__(self, rfc, mes, anio, cod_agrupador,
-                 cuenta, descripcion, naturaleza, nivel):
+class CatalogoCuenta(Contabilidad):
+    def __init__(self, rfc, mes, anio):
+        super().__init__()
+        self._namespace_catalogo = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/CatalogoCuentas' 
+        self._namespaces = {
+            'catalogocuentas': self._namespace_catalogo,
+            'xsi': self._namespace_xsi,
+        }
+        self._schemaLocation = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/CatalogoCuentas http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/CatalogoCuentas/CatalogoCuentas_1_3.xsd'
         self._rfc = rfc
         self._mes = mes
         self._anio = anio
-        self._cod_agrupador = cod_agrupador
-        self._cuenta = cuenta
-        self._descripcion = descripcion
-        self._naturaleza = naturaleza
-        self._nivel = nivel
-
+        self.cuentas = None
+        
     @property
     def rfc(self):
         return self._rfc
@@ -254,6 +258,58 @@ class CatalogoCuenta:
     @anio.setter
     def anio(self, anio):
         self._anio = anio
+
+    
+    def crea_xml(self):
+        nombre_xml = f'{self.rfc}{self.anio}{self.mes}CT.xml'
+        attr_schema = et.QName(self._namespace_xsi, 'schemaLocation')
+        elemento = et.Element(
+            f'{{{self._namespace_catalogo}}}Catalogo',
+            nsmap=self._namespaces,
+            attrib={
+                attr_schema: self._schemaLocation,
+                'Version': self._version,
+                'RFC': self.rfc,
+                'Mes': self.mes,
+                'Anio': self.anio,
+            }
+        )
+        for cuenta in self.cuentas:
+            et.SubElement(
+                elemento,
+                f'{{{self._namespace_catalogo}}}Ctas',
+                nsmap=self._namespaces,
+                attrib={
+                    'CodAgrup': cuenta.cod_agrupador,
+                    'NumCta': cuenta.cuenta,
+                    'Desc': cuenta.descripcion,
+                    'Nivel': cuenta.nivel,
+                    'Natur': cuenta.naturaleza,
+                }
+            )
+        arbol = et.ElementTree(elemento)
+        arbol.write(nombre_xml, encoding='utf-8', pretty_print=True, standalone=True)
+
+
+class CuentaCatalogo:
+    def __init__(self, cod_agrupador, cuenta, descripcion, naturaleza):
+        self._cod_agrupador = self._valida_decimales(cod_agrupador)
+        self._cuenta = cuenta
+        self._descripcion = descripcion
+        self._naturaleza = naturaleza
+        self._nivel = str(len(cuenta.split('-')))
+
+    def _valida_decimales(self, numero):
+        num = str(numero)
+        separa = num.split('.')
+        if len(separa) == 2:
+            entero, decimal = separa
+        if decimal == '' or decimal == '0':
+            return entero
+        elif len(decimal) == 1:
+            num = f'{entero}.{int(decimal):02d}'
+
+        return num
 
     @property
     def cod_agrupador(self):

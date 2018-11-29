@@ -4,49 +4,45 @@ import traceback
 
 import xlrd
 
-from cElectronica import Balanza, Cuenta, BalanzaError
+from cElectronica import CatalogoCuenta, CuentaCatalogo, CatalogoError
 
-
-def genera_contabilidad(nombre_archivo):
+def genera_catalogo(nombre_archivo):
     ex = r'^\d{3}[A-Z\-]*\d*$'
     libro = xlrd.open_workbook(nombre_archivo)
-    rfc_actual = nombre_archivo.split('.')[0]
+    if nombre_archivo.startswith('CAT'):
+        rfc = nombre_archivo.split('.')[0][3:]
+    else:
+        raise CatalogoError(f'Archivo invalido {nombre_archivo}')
     pestanas = libro.sheets()
     for pestana in pestanas:
         cuentas = []
         try:
-            mes_nombre, anio = pestana.name.split(' ')
+            anio = pestana.name.split(' ')[1]
         except ValueError as ve:
-            raise BalanzaError(
-                'Recuerda nombrar correctamente las pestañas '
-                + f'{nombre_archivo} {pestana.name}'
-            )
-        mes_numero = Balanza.MESES_NOMBRE[mes_nombre]
-        mes = f'{mes_numero:02d}'
-        balanza = Balanza(rfc_actual, 'N', mes, anio)
+            raise CatalogoError(f'Recuerda nombrar correctamente las pestañas {nombre_archivo} {pestana.name}')
+        catalogo = CatalogoCuenta(rfc, '13', anio)
         for fila in pestana.get_rows():
             if fila[1].ctype == 2:
                 valor_fila = str(fila[1].value)
                 valor_fila = valor_fila.split('.')[0]
                 fila[1].value = valor_fila
             if re.match(ex, fila[1].value):
-                cuenta = Cuenta(
+                cuenta = CuentaCatalogo(
+                    fila[0].value,
                     fila[1].value,
+                    fila[2].value,
                     fila[3].value,
-                    fila[4].value,
-                    fila[5].value,
-                    fila[6].value
                 )
                 cuentas.append(cuenta)
-        balanza.cuentas = cuentas
-        balanza.crea_xml()
+        catalogo.cuentas = cuentas
+        catalogo.crea_xml()
 
 
 def obtener_archivos():
     archivos = os.listdir()
     regex = [
         re.match(
-            r'^[A-ZÑ&]{3,4}\d{6}(?:[A-Z\d]{3})?\.xlsx?', x
+            r'^CAT[A-ZÑ&]{3,4}\d{6}(?:[A-Z\d]{3})?\.xlsx?', x
         ) for x in archivos
     ]
     archivos_validos = [x.string for x in regex if x != None]
@@ -56,13 +52,14 @@ def obtener_archivos():
 def main():
     archivos = obtener_archivos()
     for archivo in archivos:
-        genera_contabilidad(archivo)
+        genera_catalogo(archivo)
+
 
 
 if __name__ == '__main__':
     try:
         main()
     except Exception as e:
-        print(e)
+        traceback.print_exc()
     finally:
         input('Terminamos, presiona Enter')
