@@ -35,7 +35,9 @@ def genera_catalogo(nombre_archivo):
                 )
                 cuentas.append(cuenta)
         catalogo.cuentas = cuentas
-        catalogo.crea_xml()
+        for nombre, mes in catalogo.MESES_NOMBRE.items():
+            catalogo.mes = f'{mes:02d}'
+            catalogo.crea_xml()
 
 
 def obtener_archivos():
