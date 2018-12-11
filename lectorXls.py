@@ -4,7 +4,41 @@ import traceback
 
 import xlrd
 
-from cElectronica import Balanza, Cuenta, BalanzaError
+from cElectronica import CatalogoCuenta, CuentaCatalogo, Balanza, Cuenta, BalanzaError
+
+
+def detecta_titulos(fila):
+    TITULOS = ('Código Agrupador', 'Cuenta', 'Descripción', 'Saldo Inicial', 
+               'Debe', 'Haber', 'Saldo Final', 'Naturaleza')
+    TITULOS_BALANZA = ('Cuenta', 'Saldo Inicial', 
+                       'Debe', 'Haber', 'Saldo Final')
+    TITULOS_CATALOGO = ('Código Agrupador', 'Cuenta', 
+                        'Descripción', 'Naturaleza')
+    valores = [x.value for x in fila]
+    if all([x in valores for x in TITULOS]):
+        return 2
+    if all([x in valores for x in TITULOS_BALANZA]):
+        return 0
+    if all([x in valores for x in TITULOS_CATALOGO]):
+        return 1
+    return -1
+
+
+def asigna_columna(fila):
+    return {celda.value: num for num, celda in enumerate(fila)}
+
+
+def id_fila(fila, asig_col):
+        for nombre, col in asig_col.items():
+            if nombre == 'Código Agrupador':
+                ex = r'^\d{3}\.?(\.\d{1,2})?$'
+                fila[col].ctype
+       
+
+def numero_fila_titulos(pestana):
+    for num, fila in enumerate(pestana.get_rows()):
+        if all(map(lambda x: x.ctype == 1, fila)):
+            return num
 
 
 def genera_contabilidad(nombre_archivo):
@@ -13,7 +47,6 @@ def genera_contabilidad(nombre_archivo):
     rfc_actual = nombre_archivo.split('.')[0]
     pestanas = libro.sheets()
     for pestana in pestanas:
-        cuentas = []
         try:
             mes_nombre, anio = pestana.name.split(' ')
         except ValueError as ve:
@@ -23,23 +56,46 @@ def genera_contabilidad(nombre_archivo):
             )
         mes_numero = Balanza.MESES_NOMBRE[mes_nombre]
         mes = f'{mes_numero:02d}'
-        balanza = Balanza(rfc_actual, 'N', mes, anio)
-        for fila in pestana.get_rows():
-            if fila[1].ctype == 2:
-                valor_fila = str(fila[1].value)
-                valor_fila = valor_fila.split('.')[0]
-                fila[1].value = valor_fila
-            if re.match(ex, fila[1].value):
-                cuenta = Cuenta(
-                    fila[1].value,
-                    fila[3].value,
-                    fila[4].value,
-                    fila[5].value,
-                    fila[6].value
-                )
-                cuentas.append(cuenta)
-        balanza.cuentas = cuentas
-        balanza.crea_xml()
+        fila_titulos = pestana.row(numero_fila_titulos(pestana))
+        dic_titulos = asigna_columna(fila_titulos)
+        opciones = detecta_titulos(fila_titulos)
+        if opciones == 2 or opciones == 0:
+            cuentas = []
+            balanza = Balanza(rfc_actual, 'N', mes, anio)
+            for fila in pestana.get_rows():
+                if fila[1].ctype == 2:
+                    valor_fila = str(fila[1].value)
+                    valor_fila = valor_fila.split('.')[0]
+                    fila[1].value = valor_fila
+                if re.match(ex, fila[1].value):
+                    cuenta = Cuenta(
+                        fila[dic_titulos['Cuenta']].value,
+                        fila[dic_titulos['Saldo Inicial']].value,
+                        fila[dic_titulos['Debe']].value,
+                        fila[dic_titulos['Haber']].value,
+                        fila[dic_titulos['Saldo Final']].value,
+                    )
+                    cuentas.append(cuenta)
+            balanza.cuentas = cuentas
+            balanza.crea_xml()
+        if opciones == 2 or opciones == 1:
+            cuentas = []
+            catalogo = CatalogoCuenta(rfc_actual, mes, anio)
+            for fila in pestana.get_rows():
+                if fila[1].ctype == 2:
+                    valor_fila = str(fila[1].value)
+                    valor_fila = valor_fila.split('.')[0]
+                    fila[1].value = valor_fila
+                if re.match(ex, fila[1].value):
+                    cuenta = CuentaCatalogo(
+                        fila[dic_titulos['Código Agrupador']].value,
+                        fila[dic_titulos['Cuenta']].value,
+                        fila[dic_titulos['Descripción']].value,
+                        fila[dic_titulos['Naturaleza']].value,
+                    )
+                    cuentas.append(cuenta)
+            catalogo.cuentas = cuentas
+            catalogo.crea_xml()
 
 
 def obtener_archivos():
@@ -62,7 +118,7 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except Exception as e:
-        print(e)
+    except Exception:
+        traceback.print_exc()
     finally:
         input('Terminamos, presiona Enter')

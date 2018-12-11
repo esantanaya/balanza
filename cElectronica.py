@@ -304,11 +304,10 @@ class CuentaCatalogo:
         separa = num.split('.')
         if len(separa) == 2:
             entero, decimal = separa
-        if decimal == '' or decimal == '0':
-            return entero
-        elif len(decimal) == 1:
-            num = f'{entero}.{int(decimal):02d}'
-
+            if decimal == '' or decimal == '0':
+                return entero
+            elif len(decimal) == 1:
+                num = f'{entero}.{int(decimal):02d}'
         return num
 
     @property
