@@ -6,6 +6,7 @@ import xlrd
 
 from cElectronica import CatalogoCuenta, CuentaCatalogo, CatalogoError
 
+
 def genera_catalogo(nombre_archivo):
     ex = r'^\d{3}[A-Z\-]*\d*$'
     libro = xlrd.open_workbook(nombre_archivo)
@@ -18,8 +19,9 @@ def genera_catalogo(nombre_archivo):
         cuentas = []
         try:
             anio = pestana.name.split(' ')[1]
-        except ValueError as ve:
-            raise CatalogoError(f'Recuerda nombrar correctamente las pestañas {nombre_archivo} {pestana.name}')
+        except ValueError:
+            raise CatalogoError('Recuerda nombrar correctamente las pestañas'
+                                f'{nombre_archivo} {pestana.name}')
         catalogo = CatalogoCuenta(rfc, '13', anio)
         for fila in pestana.get_rows():
             if fila[1].ctype == 2:
@@ -47,7 +49,7 @@ def obtener_archivos():
             r'^CAT[A-ZÑ&]{3,4}\d{6}(?:[A-Z\d]{3})?\.xlsx?', x
         ) for x in archivos
     ]
-    archivos_validos = [x.string for x in regex if x != None]
+    archivos_validos = [x.string for x in regex if x is not None]
     return archivos_validos
 
 
@@ -57,11 +59,10 @@ def main():
         genera_catalogo(archivo)
 
 
-
 if __name__ == '__main__':
     try:
         main()
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
     finally:
         input('Terminamos, presiona Enter')

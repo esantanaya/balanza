@@ -19,6 +19,7 @@ class Contabilidad:
         'Diciembre': 12,
         'Cierre': 13,
     }
+
     def __init__(self):
         self._namespace_xsi = 'http://www.w3.org/2001/XMLSchema-instance'
         self._version = '1.3'
@@ -27,12 +28,16 @@ class Contabilidad:
 class Balanza(Contabilidad):
     def __init__(self, rfc=None, tipo_envio=None, mes=None, anio=None):
         super().__init__()
-        self._namespace_bce = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion'
+        self._namespace_bce = ('http://www.sat.gob.mx/esquemas/ContabilidadE'
+                               '/1_3/BalanzaComprobacion')
         self._namespaces = {
             'BCE': self._namespace_bce,
             'xsi': self._namespace_xsi,
         }
-        self._schemaLocation = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/BalanzaComprobacion/BalanzaComprobacion_1_3.xsd'
+        self._schemaLocation = ('http://www.sat.gob.mx/esquemas/ContabilidadE'
+                                '/1_3/BalanzaComprobacion http://www.sat.gob'
+                                '.mx/esquemas/ContabilidadE/1_3/BalanzaCompro'
+                                'bacion/BalanzaComprobacion_1_3.xsd')
         self._rfc = rfc
         self._tipo_envio = tipo_envio
         self._mes = mes
@@ -114,7 +119,7 @@ class Balanza(Contabilidad):
         )
         attr_schema = et.QName(self._namespace_xsi, 'schemaLocation')
         elemento = et.Element(
-            f'{{{self._namespace_bce}}}Balanza', 
+            f'{{{self._namespace_bce}}}Balanza',
             nsmap=self._namespaces,
             attrib={
                 attr_schema: self._schemaLocation,
@@ -127,7 +132,7 @@ class Balanza(Contabilidad):
         )
         for cuenta in self.cuentas:
             et.SubElement(
-                elemento, 
+                elemento,
                 f'{{{self._namespace_bce}}}Ctas',
                 nsmap=self._namespaces,
                 attrib={
@@ -139,27 +144,22 @@ class Balanza(Contabilidad):
                 }
             )
         arbol = et.ElementTree(elemento)
-        arbol.write(nombre_xml, encoding='utf-8', pretty_print=True, standalone=True)
+        arbol.write(nombre_xml, encoding='utf-8', pretty_print=True,
+                    standalone=True)
 
 
 class Cuenta:
-    def __init__(
-        self,
-        num_cta=None,
-        saldo_ini=None,
-        debe=None,
-        haber=None,
-        saldo_fin=None,
-    ):
-        self._num_cta = num_cta
-        self._saldo_ini = self._valida_decimales(saldo_ini)
-        self._debe = self._valida_decimales(debe)
-        self._haber = self._valida_decimales(haber)
-        self._saldo_fin = self._valida_decimales(saldo_fin)
+    def __init__(self, num_cta=None, saldo_ini=None, debe=None, haber=None,
+                 saldo_fin=None):
+        self.num_cta = num_cta
+        self.saldo_ini = saldo_ini
+        self.debe = debe
+        self.haber = haber
+        self.saldo_fin = saldo_fin
 
     def _valida_decimales(self, numero):
         if isinstance(numero, float) or isinstance(numero, int):
-            return str(numero)
+            return str(round(numero, 2))
         numero = str(numero)
         if len(numero) == 0 or numero == 'None':
             return '0'
@@ -184,7 +184,7 @@ class Cuenta:
         if len(num_cta) < 1:
             raise BalanzaError(
                'Error! ingresó un número de cuenta vacío para la balanza '
-                + f'{self.balanza}'
+               + f'{self.balanza}'
             )
         self._num_cta = num_cta
 
@@ -224,17 +224,21 @@ class Cuenta:
 class CatalogoCuenta(Contabilidad):
     def __init__(self, rfc, mes, anio):
         super().__init__()
-        self._namespace_catalogo = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/CatalogoCuentas' 
+        self._namespace_catalogo = ('http://www.sat.gob.mx/esquemas/'
+                                    'ContabilidadE/1_3/CatalogoCuentas')
         self._namespaces = {
             'catalogocuentas': self._namespace_catalogo,
             'xsi': self._namespace_xsi,
         }
-        self._schemaLocation = 'http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/CatalogoCuentas http://www.sat.gob.mx/esquemas/ContabilidadE/1_3/CatalogoCuentas/CatalogoCuentas_1_3.xsd'
+        self._schemaLocation = ('http://www.sat.gob.mx/esquemas/ContabilidadE'
+                                '/1_3/CatalogoCuentas http://www.sat.gob.mx/'
+                                'esquemas/ContabilidadE/1_3/CatalogoCuentas/'
+                                'CatalogoCuentas_1_3.xsd')
         self._rfc = rfc
         self._mes = mes
         self._anio = anio
         self.cuentas = None
-        
+
     @property
     def rfc(self):
         return self._rfc
@@ -259,7 +263,6 @@ class CatalogoCuenta(Contabilidad):
     def anio(self, anio):
         self._anio = anio
 
-    
     def crea_xml(self):
         nombre_xml = f'{self.rfc}{self.anio}{self.mes}CT.xml'
         attr_schema = et.QName(self._namespace_xsi, 'schemaLocation')
@@ -288,16 +291,20 @@ class CatalogoCuenta(Contabilidad):
                 }
             )
         arbol = et.ElementTree(elemento)
-        arbol.write(nombre_xml, encoding='utf-8', pretty_print=True, standalone=True)
+        arbol.write(nombre_xml, encoding='utf-8', pretty_print=True,
+                    standalone=True)
 
 
 class CuentaCatalogo:
+
+    NATURALEZAS = ('A', 'D')
+
     def __init__(self, cod_agrupador, cuenta, descripcion, naturaleza):
-        self._cod_agrupador = self._valida_decimales(cod_agrupador)
-        self._cuenta = cuenta
-        self._descripcion = descripcion
-        self._naturaleza = naturaleza
-        self._nivel = str(len(cuenta.split('-')))
+        self.cod_agrupador = cod_agrupador
+        self.cuenta = cuenta
+        self.descripcion = descripcion
+        self.naturaleza = naturaleza
+        self.nivel = str(len(cuenta.split('-')))
 
     def _valida_decimales(self, numero):
         num = str(numero)
@@ -316,7 +323,7 @@ class CuentaCatalogo:
 
     @cod_agrupador.setter
     def cod_agrupador(self, cod_agrupador):
-        self._cod_agrupador = cod_agrupador
+        self._cod_agrupador = self._valida_decimales(cod_agrupador)
 
     @property
     def cuenta(self):
@@ -340,7 +347,13 @@ class CuentaCatalogo:
 
     @naturaleza.setter
     def naturaleza(self, naturaleza):
-        self._naturaleza = naturaleza
+        if naturaleza in self.NATURALEZAS:
+            self._naturaleza = naturaleza
+        else:
+            raise BalanzaError(
+                f'La naturaleza solo puede ser {self.NATURALEZAS} '
+                f'Tu pusiste {naturaleza} en la cuenta {self.cuenta}'
+            )
 
     @property
     def nivel(self):
@@ -352,6 +365,12 @@ class CuentaCatalogo:
 
 
 class BalanzaError(Exception):
+
+    BALANZA = ('Cuenta', 'Saldo Inicial',
+                       'Debe', 'Haber', 'Saldo Final')
+    CATALOGO = ('Código Agrupador', 'Cuenta',
+                        'Descripción', 'Naturaleza')
+
     def __init__(self, error):
         super().__init__(self, error)
 
